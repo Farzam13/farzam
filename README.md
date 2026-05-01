@@ -1,37 +1,30 @@
-# Update Browserslist DB
+# Smart Home Care Matching Platform MVP
 
-<img width="120" height="120" alt="Browserslist logo by Anton Popov"
-     src="https://browsersl.ist/logo.svg" align="right">
+## Stack
+Next.js App Router + Tailwind + Supabase + server-side PDFKit.
 
-CLI tool to update `caniuse-lite` with browsers DB
-from [Browserslist](https://github.com/browserslist/browserslist/) config.
-
-Some queries like `last 2 versions` or `>1%` depend on actual data
-from `caniuse-lite`.
-
-```sh
-npx update-browserslist-db@latest
+## Setup
+1. Install dependencies: `pnpm install`
+2. Add `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
+3. Run SQL in `supabase-schema.sql`.
+4. Seed caregivers in Supabase table.
+5. Start app: `pnpm dev`
 
-<a href="https://evilmartians.com/?utm_source=update-browserslist-db">
-  <img src="https://evilmartians.com/badges/sponsored-by-evil-martians.svg"
-       alt="Sponsored by Evil Martians" width="236" height="54">
-</a>
+## Project Structure
+- `app/intake`: multi-step 360 patient assessment form
+- `app/api/match`: rule-based matching endpoint
+- `app/api/generate-pdf`: care folder PDF generation
+- `app/dashboard`: internal operations dashboard and assignment flow
+- `lib/matching.ts`: matching engine
+- `supabase-schema.sql`: DB schema
 
-## Why you need to call it regularly
-
-`npx update-browserslist-db@latest` updates `caniuse-lite` version
-in your npm, yarn, or pnpm lock file.
-
-This update will bring data about new browsers to polyfill tools
-like Autoprefixer or Babel and reduce already unnecessary polyfills.
-
-You need to do it regularly for three reasons:
-
-1. To use the latest browser’s versions and statistics in queries like
-   `last 2 versions` or `>1%`. For example, if you created your project
-   2 years ago and did not update your dependencies, `last 1 version`
-   will return 2-year-old browsers.
-2. Actual browser data will lead to using less polyfills. It will reduce
-   size of JS and CSS files and improve website performance.
-3. `caniuse-lite` deduplication: to synchronize versions in different tools.
+## Core Flow
+1. Complete intake form
+2. See “Analyzing your case...” state
+3. Get top-2 matches + explanation
+4. Download generated Care Information Folder PDF
+5. Manage assignment from dashboard
