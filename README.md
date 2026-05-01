@@ -1,30 +1,50 @@
-# Smart Home Care Matching Platform MVP
+# Home Care Management System (Multi-tenant SaaS MVP)
 
-## Stack
-Next.js App Router + Tailwind + Supabase + server-side PDFKit.
-
-## Setup
-1. Install dependencies: `pnpm install`
-2. Add `.env.local`:
-```env
-NEXT_PUBLIC_SUPABASE_URL=...
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-```
-3. Run SQL in `supabase-schema.sql`.
-4. Seed caregivers in Supabase table.
-5. Start app: `pnpm dev`
+## Architecture
+- Next.js App Router frontend + API routes
+- Supabase Auth + Postgres + Row Level Security
+- Multi-tenant data model with `clinic_id` isolation
+- Role model: `admin`, `staff`
 
 ## Project Structure
-- `app/intake`: multi-step 360 patient assessment form
-- `app/api/match`: rule-based matching endpoint
-- `app/api/generate-pdf`: care folder PDF generation
-- `app/dashboard`: internal operations dashboard and assignment flow
-- `lib/matching.ts`: matching engine
-- `supabase-schema.sql`: DB schema
+- `app/intake` - 360 patient assessment intake
+- `app/dashboard` - SaaS operations dashboard (stats + pipeline + patient management)
+- `app/api/match` - caregiver ranking API
+- `app/api/generate-pdf` - care plan PDF export
+- `app/api/assign` - assignment endpoint
+- `lib/matching.ts` - rule-based matching + risk classification
+- `supabase-schema.sql` - tenant-aware schema + RLS policies
 
-## Core Flow
-1. Complete intake form
-2. See “Analyzing your case...” state
-3. Get top-2 matches + explanation
-4. Download generated Care Information Folder PDF
-5. Manage assignment from dashboard
+## Database Schema
+Tables included:
+- `clinics`
+- `users`
+- `patients`
+- `caregivers`
+- `matches`
+- `care_plans`
+- `leads`
+
+## Matching Weights
+- Clinical match: 50%
+- Personality match: 30%
+- Experience: 20%
+
+## CRM Pipeline
+`Lead → Assessment → Assigned → Active → Closed`
+
+## Local Setup
+1. `pnpm install`
+2. Create `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+```
+3. Run SQL from `supabase-schema.sql` in Supabase SQL editor.
+4. Ensure authenticated users have a `users` profile row with `clinic_id` and `role`.
+5. Seed sample caregivers and patients.
+6. Run `pnpm dev`.
+
+## Security
+- RLS enabled on all tenant tables.
+- Policies use `current_clinic_id()` helper to enforce clinic-level isolation.
