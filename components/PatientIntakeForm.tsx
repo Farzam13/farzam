@@ -18,14 +18,18 @@ export default function PatientIntakeForm() {
   const [data, setData] = useState(defaultData)
   const [analyzing, setAnalyzing] = useState(false)
   const [result, setResult] = useState<any>(null)
+  const [clinicId, setClinicId] = useState('')
 
   const update = (k: keyof PatientFormData, v: any) => setData(prev => ({ ...prev, [k]: v }))
 
   async function submit() {
     setAnalyzing(true)
     const { data: saved } = await supabase.from('patients').insert({ payload: data, name: data.name, main_condition: data.mainCondition }).select().single()
-    const matchRes = await fetch('/api/match', { method: 'POST', body: JSON.stringify({ patient: data }) })
+    const matchRes = await fetch('/api/match', { method: 'POST', body: JSON.stringify({ patient: data, clinicId }) })
     const matches = await matchRes.json()
+    if (matches?.[0]?.riskLevel === 'high') {
+      await supabase.from('notifications').insert({ clinic_id: clinicId, patient_id: saved?.id, level: 'critical', message: `High-risk patient alert: ${data.name}` })
+    }
     setResult({ patientId: saved?.id, matches })
     setAnalyzing(false)
   }
@@ -34,6 +38,7 @@ export default function PatientIntakeForm() {
 
   return <div className="space-y-4 rounded bg-white p-6 shadow">
     <h2 className="text-xl font-semibold">360 Assessment - {steps[step]}</h2>
+    <input className="border p-2" placeholder="Clinic ID" value={clinicId} onChange={e=>setClinicId(e.target.value)} />
     {step===0 && <div className="grid gap-2 md:grid-cols-2">
       <input className="border p-2" placeholder="Name" onChange={e=>update('name',e.target.value)} />
       <input className="border p-2" type="number" placeholder="Age" onChange={e=>update('age',Number(e.target.value))} />

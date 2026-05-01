@@ -2,6 +2,12 @@ import { Caregiver, PatientFormData } from '@/types'
 
 export type RiskLevel = 'low' | 'medium' | 'high'
 
+export interface MatchingWeights {
+  clinical_weight: number
+  personality_weight: number
+  experience_weight: number
+}
+
 export function computeRiskLevel(assessment: PatientFormData): RiskLevel {
   let points = 0
   if (assessment.fallHistory) points += 2
@@ -15,21 +21,26 @@ export function computeRiskLevel(assessment: PatientFormData): RiskLevel {
   return 'low'
 }
 
-export function matchCaregivers(patient: PatientFormData, caregivers: Caregiver[]) {
+export function matchCaregivers(patient: PatientFormData, caregivers: Caregiver[], weights?: MatchingWeights) {
+  const cfg = weights || { clinical_weight: 50, personality_weight: 30, experience_weight: 20 }
+  const risk = computeRiskLevel(patient)
+
   return caregivers
     .map(caregiver => {
       const clinicalHits = patient.diseases.filter(d => caregiver.skills.includes(d) || caregiver.specialties.includes(d))
-      const clinicalScore = Math.min(50, clinicalHits.length * 15)
-      const personalityScore = caregiver.personality_type === patient.personality ? 30 : 10
-      const experienceScore = ['expert', 'senior'].includes(caregiver.experience_level) ? 20 : 10
-      const score = Math.min(100, clinicalScore + personalityScore + experienceScore)
+      const clinicalScore = Math.min(cfg.clinical_weight, clinicalHits.length * (cfg.clinical_weight / 3))
+      const personalityScore = caregiver.personality_type === patient.personality ? cfg.personality_weight : cfg.personality_weight * 0.3
+      const experienceScore = ['expert', 'senior'].includes(caregiver.experience_level) ? cfg.experience_weight : cfg.experience_weight * 0.5
+      const score = Math.round(Math.min(100, clinicalScore + personalityScore + experienceScore))
 
-      return {
-        caregiver,
-        score,
-        riskLevel: computeRiskLevel(patient),
-        explanation: `${caregiver.name} scored ${score}/100 with strong clinical compatibility (${clinicalScore}/50), personality alignment (${personalityScore}/30), and experience fit (${experienceScore}/20).`
-      }
+      const explanation = [
+        `Clinical fit: ${Math.round(clinicalScore)}/${cfg.clinical_weight}${clinicalHits.length ? ` from ${clinicalHits.join(', ')}` : ' with limited disease overlap'}`,
+        `Personality fit: ${Math.round(personalityScore)}/${cfg.personality_weight}`,
+        `Experience fit: ${Math.round(experienceScore)}/${cfg.experience_weight}`,
+        `Risk profile: ${risk}`
+      ].join(' | ')
+
+      return { caregiver, score, riskLevel: risk, explanation }
     })
     .sort((a, b) => b.score - a.score)
 }

@@ -1,10 +1,9 @@
--- Extensions
 create extension if not exists pgcrypto;
 
--- Core tenants
 create table if not exists clinics (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  scoring_weights jsonb not null default '{"clinical_weight":50,"personality_weight":30,"experience_weight":20}'::jsonb,
   created_at timestamptz default now()
 );
 
@@ -41,8 +40,6 @@ create table if not exists caregivers (
   created_at timestamptz default now()
 );
 
-alter table patients add constraint fk_patient_caregiver foreign key (assigned_caregiver_id) references caregivers(id);
-
 create table if not exists matches (
   id uuid primary key default gen_random_uuid(),
   clinic_id uuid not null references clinics(id) on delete cascade,
@@ -72,16 +69,22 @@ create table if not exists leads (
   created_at timestamptz default now()
 );
 
--- Helper: current clinic from profile
-create or replace function public.current_clinic_id()
-returns uuid
-language sql
-stable
-as $$
+create table if not exists notifications (
+  id uuid primary key default gen_random_uuid(),
+  clinic_id uuid not null references clinics(id) on delete cascade,
+  patient_id uuid references patients(id) on delete set null,
+  level text not null check (level in ('info','warning','critical')),
+  message text not null,
+  read_at timestamptz,
+  created_at timestamptz default now()
+);
+
+alter table patients add constraint fk_patient_caregiver foreign key (assigned_caregiver_id) references caregivers(id);
+
+create or replace function public.current_clinic_id() returns uuid language sql stable as $$
   select clinic_id from public.users where id = auth.uid()
 $$;
 
--- RLS
 alter table clinics enable row level security;
 alter table users enable row level security;
 alter table patients enable row level security;
@@ -89,14 +92,13 @@ alter table caregivers enable row level security;
 alter table matches enable row level security;
 alter table care_plans enable row level security;
 alter table leads enable row level security;
+alter table notifications enable row level security;
 
-create policy "users view own clinic" on users for select using (clinic_id = current_clinic_id());
-create policy "users manage own clinic" on users for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
-
-create policy "patients clinic isolation" on patients for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
-create policy "caregivers clinic isolation" on caregivers for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
-create policy "matches clinic isolation" on matches for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
-create policy "care plans clinic isolation" on care_plans for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
-create policy "leads clinic isolation" on leads for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
-
-create policy "clinics view own" on clinics for select using (id = current_clinic_id());
+create policy "users clinic" on users for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
+create policy "clinics own" on clinics for select using (id = current_clinic_id());
+create policy "patients clinic" on patients for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
+create policy "caregivers clinic" on caregivers for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
+create policy "matches clinic" on matches for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
+create policy "care_plans clinic" on care_plans for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
+create policy "leads clinic" on leads for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
+create policy "notifications clinic" on notifications for all using (clinic_id = current_clinic_id()) with check (clinic_id = current_clinic_id());
