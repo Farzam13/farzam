@@ -1,0 +1,1 @@
+export const metricWeights = { entitySalience: 0.14, chunkAutonomy: 0.14, citationDensity: 0.14, semanticCompleteness: 0.12, retrievalClarity: 0.12, graphConnectivity: 0.12, trustDensity: 0.12, aiOverviewReadiness: 0.1 };

@@ -1,0 +1,9 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+model Article { id String @id @default(cuid()) title String url String @unique rawContent String optimizedStructure Json createdAt DateTime @default(now()) chunks Chunk[] entities Entity[] schemaGraphs SchemaGraph[] retrievalScores RetrievalScore[] citationPatterns CitationPattern[] }
+model Chunk { id String @id @default(cuid()) articleId String text String wordCount Int autonomyScore Float citationDensity Float ambiguityScore Float article Article @relation(fields:[articleId], references:[id], onDelete:Cascade) }
+model Entity { id String @id @default(cuid()) articleId String name String type String salience Float sameAs Json? article Article @relation(fields:[articleId], references:[id], onDelete:Cascade) outgoing SemanticRelation[] @relation("fromEntity") incoming SemanticRelation[] @relation("toEntity") }
+model SchemaGraph { id String @id @default(cuid()) articleId String payload Json isValid Boolean article Article @relation(fields:[articleId], references:[id], onDelete:Cascade) }
+model RetrievalScore { id String @id @default(cuid()) articleId String total Int metrics Json pass Boolean article Article @relation(fields:[articleId], references:[id], onDelete:Cascade) }
+model CitationPattern { id String @id @default(cuid()) articleId String trigger String confidence Float article Article @relation(fields:[articleId], references:[id], onDelete:Cascade) }
+model SemanticRelation { id String @id @default(cuid()) fromEntityId String toEntityId String relation String weight Float fromEntity Entity @relation("fromEntity", fields:[fromEntityId], references:[id], onDelete:Cascade) toEntity Entity @relation("toEntity", fields:[toEntityId], references:[id], onDelete:Cascade) }

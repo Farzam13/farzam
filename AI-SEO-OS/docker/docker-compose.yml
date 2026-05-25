@@ -1,0 +1,6 @@
+version: '3.9'
+services:
+  app: { build: .., ports: ["3000:3000"], env_file: ../.env.example, depends_on: [postgres, neo4j] }
+  postgres: { image: postgres:16, environment: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: aiseoos }, ports: ["5432:5432"] }
+  neo4j: { image: neo4j:5, environment: { NEO4J_AUTH: neo4j/neo4jpassword }, ports: ["7474:7474", "7687:7687"] }
+  weaviate: { image: semitechnologies/weaviate:1.25.4, ports: ["8080:8080"] }
