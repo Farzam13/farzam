@@ -1,37 +1,46 @@
-# Update Browserslist DB
+# Home Care Management System (Multi-tenant SaaS MVP)
 
-<img width="120" height="120" alt="Browserslist logo by Anton Popov"
-     src="https://browsersl.ist/logo.svg" align="right">
+## Architecture
+- Multi-tenant by clinic (`clinic_id` on domain tables)
+- Next.js App Router + Supabase Auth/DB/RLS + API Routes
+- Role-based access (`admin`, `staff`) via `users` profile table
 
-CLI tool to update `caniuse-lite` with browsers DB
-from [Browserslist](https://github.com/browserslist/browserslist/) config.
+## Key Enhancements
+1. Clinic-level scoring customization (`clinics.scoring_weights`).
+2. Explainable matching output with weighted component breakdown.
+3. Analytics dashboard with conversion and retention metrics.
+4. Notifications system for high-risk patient alerts.
 
-Some queries like `last 2 versions` or `>1%` depend on actual data
-from `caniuse-lite`.
+## Project Structure
+- `app/dashboard` analytics + pipeline + alerts
+- `app/intake` patient 360 assessment workflow
+- `app/api/match` tenant-aware matching with clinic weights
+- `app/api/generate-pdf` care plan export
+- `lib/matching.ts` explainable scoring and risk logic
+- `supabase-schema.sql` full SaaS schema and RLS
 
-```sh
-npx update-browserslist-db@latest
+## Database Schema
+Core tables:
+- clinics (includes `scoring_weights`)
+- users
+- patients
+- caregivers
+- matches
+- care_plans
+- leads
+- notifications
+
+## Local Setup
+1. `pnpm install`
+2. Create `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 ```
+3. Apply `supabase-schema.sql`.
+4. Create profile rows in `users` for authenticated accounts.
+5. Run `pnpm dev`.
 
-<a href="https://evilmartians.com/?utm_source=update-browserslist-db">
-  <img src="https://evilmartians.com/badges/sponsored-by-evil-martians.svg"
-       alt="Sponsored by Evil Martians" width="236" height="54">
-</a>
-
-## Why you need to call it regularly
-
-`npx update-browserslist-db@latest` updates `caniuse-lite` version
-in your npm, yarn, or pnpm lock file.
-
-This update will bring data about new browsers to polyfill tools
-like Autoprefixer or Babel and reduce already unnecessary polyfills.
-
-You need to do it regularly for three reasons:
-
-1. To use the latest browser’s versions and statistics in queries like
-   `last 2 versions` or `>1%`. For example, if you created your project
-   2 years ago and did not update your dependencies, `last 1 version`
-   will return 2-year-old browsers.
-2. Actual browser data will lead to using less polyfills. It will reduce
-   size of JS and CSS files and improve website performance.
-3. `caniuse-lite` deduplication: to synchronize versions in different tools.
+## Security
+- RLS enabled for tenant tables.
+- Policies enforce clinic scoping through `current_clinic_id()`.
